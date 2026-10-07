@@ -55,3 +55,11 @@ export function primaryMetric(ds: Dataset): ColumnProfile | undefined {
   const nums = ds.columns.filter((c) => c.type === 'number');
   return nums.find((c) => /revenue|sales|deal value|income|profit|gmv/i.test(c.name)) || nums.find((c) => c.currency) || nums[0];
 }
+
+const AVERAGE_NAME = /(score|rating|csat|nps|\bmin\b|mins|minutes|\bhrs?\b|hours|days|time|duration|\bage\b|rate|ratio|margin|satisfaction)/i;
+
+/** Sums are meaningless for scores, durations and percentages, so those columns are averaged. */
+export function preferredAggregate(col: ColumnProfile): 'sum' | 'avg' {
+  if (col.currency) return 'sum';
+  return col.percent || AVERAGE_NAME.test(col.name) ? 'avg' : 'sum';
+}

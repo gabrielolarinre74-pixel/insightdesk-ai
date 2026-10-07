@@ -58,7 +58,7 @@ export function Overview({ dataset, overview, insights, onAsk }: { dataset: Data
                 <div className="text-[15px] font-semibold tracking-tight">{breakdown.metricLabel} by {breakdown.groupLabel}</div>
                 <div className="text-[12.5px] text-ink-500">{breakdown.rows.length} groups</div>
               </div>
-              <ChartView result={{ ...breakdown, chart: "pie" }} metricCol={metricCol(breakdown.plan.metric.column)} height={210} />
+              <ChartView result={{ ...breakdown, chart: breakdown.plan.metric.op === "avg" ? "bar" : "pie" }} metricCol={metricCol(breakdown.plan.metric.column)} height={210} />
             </div>
           )}
         </div>

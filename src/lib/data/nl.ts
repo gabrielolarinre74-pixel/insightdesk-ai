@@ -65,7 +65,8 @@ function findMentions(q: string, ds: Dataset): Mention[] {
   for (const c of ds.columns) {
     let best: Mention | undefined;
     for (const a of aliases(c)) {
-      const m = new RegExp(`\\b${escape(a)}\\b`).exec(q);
+      // lookarounds instead of \b so names ending in punctuation, like "Response (min)", still match
+      const m = new RegExp(`(?<![a-z0-9])${escape(a)}(?![a-z0-9])`).exec(q);
       if (m && (!best || a.length > best.alias.length)) best = { col: c, index: m.index, alias: a };
     }
     if (best) found.push(best);
@@ -87,12 +88,14 @@ export function parseQuestion(question: string, ds: Dataset): ParsedQuestion | n
   const dateCol = ds.columns.find((c) => c.type === 'date');
 
   // ---- aggregate ---------------------------------------------------------
+  // Column names are blanked out first so "Response (min)" or "Max Price" don't read as aggregates
+  const bare = numeric.reduce((s, m) => s.replace(m.alias, ' '), q);
   let op: Aggregate = 'sum';
-  if (/\b(average|avg|mean|typical)\b/.test(q)) op = 'avg';
-  else if (/\b(how many (different|unique|distinct)|number of (different|unique|distinct)|unique|distinct)\b/.test(q)) op = 'distinct';
-  else if (/\b(how many|number of|count)\b/.test(q)) op = 'count';
-  else if (/\b(max|maximum|largest single|biggest single)\b/.test(q)) op = 'max';
-  else if (/\b(min|minimum|smallest single)\b/.test(q)) op = 'min';
+  if (/\b(average|avg|mean|typical)\b/.test(bare)) op = 'avg';
+  else if (/\b(how many (different|unique|distinct)|number of (different|unique|distinct)|unique|distinct)\b/.test(bare)) op = 'distinct';
+  else if (/\b(how many|number of|count)\b/.test(bare)) op = 'count';
+  else if (/\b(max|maximum|largest single|biggest single)\b/.test(bare)) op = 'max';
+  else if (/\b(min|minimum|smallest single)\b/.test(bare)) op = 'min';
 
   // ---- group by ----------------------------------------------------------
   let groupBy: QueryPlan['groupBy'];
@@ -107,7 +110,7 @@ export function parseQuestion(question: string, ds: Dataset): ParsedQuestion | n
   const colFrom = (phrase?: string) => {
     if (!phrase) return undefined;
     const p = ` ${phrase} `;
-    return mentions.find((m) => m.col.type !== 'number' && new RegExp(`\\b${escape(m.alias)}\\b`).test(p))?.col
+    return mentions.find((m) => m.col.type !== 'number' && new RegExp(`(?<![a-z0-9])${escape(m.alias)}(?![a-z0-9])`).test(p))?.col
       || ds.columns.find((c) => c.type !== 'number' && aliases(c).some((a) => p.includes(` ${a} `)));
   };
 
@@ -144,8 +147,8 @@ export function parseQuestion(question: string, ds: Dataset): ParsedQuestion | n
     for (const v of values) {
       const nv = norm(v);
       if (nv.length < 2) continue;
-      if (new RegExp(`\\b${escape(nv)}\\b`).test(q)) {
-        const negated = new RegExp(`\\b(not|excluding|except|without)\\s+(the\\s+)?${escape(nv)}\\b`).test(q);
+      if (new RegExp(`(?<![a-z0-9])${escape(nv)}(?![a-z0-9])`).test(q)) {
+        const negated = new RegExp(`\\b(not|excluding|except|without)\\s+(the\\s+)?${escape(nv)}(?![a-z0-9])`).test(q);
         filters.push({ column: c.name, op: negated ? '!=' : '=', value: v });
         break;
       }

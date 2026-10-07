@@ -1,5 +1,5 @@
 import { change } from './format';
-import { primaryMetric } from './profile';
+import { preferredAggregate, primaryMetric } from './profile';
 import { toNumber } from './parse';
 import { runQuery } from './query';
 import type { ColumnProfile, Dataset, QueryResult } from './types';
@@ -30,7 +30,7 @@ export function buildOverview(ds: Dataset, maxKpis = 4): Overview {
   const ordered = primary ? [primary, ...nums.filter((c) => c !== primary)] : nums;
 
   const kpis: Kpi[] = ordered.slice(0, maxKpis).map((column) => {
-    const op = column.percent ? 'avg' : 'sum';
+    const op = preferredAggregate(column);
     const value = op === 'avg' ? column.mean ?? 0 : column.sum ?? 0;
     let spark: number[] = [];
     let delta: string | undefined;
@@ -49,12 +49,12 @@ export function buildOverview(ds: Dataset, maxKpis = 4): Overview {
   });
 
   const trend = primary && dateCol
-    ? runQuery(ds, { metric: { op: primary.percent ? 'avg' : 'sum', column: primary.name }, groupBy: { column: dateCol.name, bucket: 'month' }, chart: 'line' })
+    ? runQuery(ds, { metric: { op: preferredAggregate(primary), column: primary.name }, groupBy: { column: dateCol.name, bucket: 'month' }, chart: 'line' })
     : undefined;
 
   const cat = ds.columns.filter((c) => c.type === 'category' && c.distinct > 1 && c.distinct <= 12).sort((a, b) => a.distinct - b.distinct)[0];
   const breakdown = cat
-    ? runQuery(ds, { metric: primary ? { op: 'sum', column: primary.name } : { op: 'count' }, groupBy: { column: cat.name }, sort: 'desc', chart: 'bar' })
+    ? runQuery(ds, { metric: primary ? { op: preferredAggregate(primary), column: primary.name } : { op: 'count' }, groupBy: { column: cat.name }, sort: 'desc', chart: 'bar' })
     : undefined;
 
   return { kpis, trend: trend && trend.rows.length >= 2 ? trend : undefined, breakdown };

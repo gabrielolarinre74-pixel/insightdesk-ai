@@ -82,3 +82,35 @@ describe('support sample', () => {
     expect(ds.columns.find((c) => c.name === 'CSAT')!.missing).toBeGreaterThan(0);
   });
 });
+
+describe('aggregation choice', () => {
+  it('averages durations and scores but sums money and counts', async () => {
+    const { supportSample } = await import('@/lib/data/samples');
+    const { preferredAggregate } = await import('@/lib/data/profile');
+    const { generateInsights } = await import('@/lib/data/insights');
+    const s = supportSample();
+    const ds = buildDataset(s.name, s.headers, s.rows);
+    const c = (n: string) => ds.columns.find((x) => x.name === n)!;
+    expect(preferredAggregate(c('First Response (min)'))).toBe('avg');
+    expect(preferredAggregate(c('Resolution (hrs)'))).toBe('avg');
+    expect(preferredAggregate(c('CSAT'))).toBe('avg');
+    const sales = salesSample();
+    const sd = buildDataset(sales.name, sales.headers, sales.rows);
+    expect(preferredAggregate(sd.columns.find((x) => x.name === 'Revenue')!)).toBe('sum');
+    expect(preferredAggregate(sd.columns.find((x) => x.name === 'Units')!)).toBe('sum');
+    expect(buildOverview(ds).kpis.every((k) => k.op === 'avg')).toBe(true);
+    expect(generateInsights(ds)[0].title).toMatch(/^Average First Response/);
+  });
+});
+
+describe('column names that contain aggregate words', () => {
+  it('does not read "(min)" in a column name as a minimum', async () => {
+    const { supportSample } = await import('@/lib/data/samples');
+    const { parseQuestion } = await import('@/lib/data/nl');
+    const s = supportSample();
+    const ds = buildDataset(s.name, s.headers, s.rows);
+    expect(parseQuestion('First Response (min) by channel', ds)?.plan.metric.op).toBe('sum');
+    expect(parseQuestion('average First Response (min) trend by month', ds)?.plan.metric.op).toBe('avg');
+    expect(parseQuestion('minimum First Response (min)', ds)?.plan.metric.op).toBe('min');
+  });
+});

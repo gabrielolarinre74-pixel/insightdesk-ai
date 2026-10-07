@@ -1,5 +1,5 @@
 import { change, formatNumber, pct } from './format';
-import { primaryMetric } from './profile';
+import { preferredAggregate, primaryMetric } from './profile';
 import { runQuery } from './query';
 import { toNumber } from './parse';
 import type { Dataset } from './types';
@@ -19,31 +19,47 @@ export function generateInsights(ds: Dataset): Insight[] {
   const dateCol = ds.columns.find((c) => c.type === 'date');
   const cats = ds.columns.filter((c) => c.type === 'category' && c.distinct > 1 && c.distinct <= 30);
 
+  const op = metric ? preferredAggregate(metric) : 'sum';
+
   if (metric) {
-    out.push({
-      kind: 'kpi',
-      title: `Total ${metric.name}: ${formatNumber(metric.sum || 0, metric, true)}`,
-      detail: `Across ${ds.rows.length.toLocaleString()} rows, an average of ${formatNumber(metric.mean || 0, metric)} per row.`,
-      question: `total ${metric.name}`,
-    });
+    out.push(op === 'avg'
+      ? {
+          kind: 'kpi',
+          title: `Average ${metric.name}: ${formatNumber(metric.mean || 0, metric)}`,
+          detail: `Across ${ds.rows.length.toLocaleString()} rows, ranging from ${formatNumber(metric.min ?? 0, metric)} to ${formatNumber(metric.max ?? 0, metric)}.`,
+          question: `average ${metric.name}`,
+        }
+      : {
+          kind: 'kpi',
+          title: `Total ${metric.name}: ${formatNumber(metric.sum || 0, metric, true)}`,
+          detail: `Across ${ds.rows.length.toLocaleString()} rows, an average of ${formatNumber(metric.mean || 0, metric)} per row.`,
+          question: `total ${metric.name}`,
+        });
   }
 
   if (metric) {
     for (const c of cats.slice(0, 2)) {
-      const res = runQuery(ds, { metric: { op: 'sum', column: metric.name }, groupBy: { column: c.name } });
+      const res = runQuery(ds, { metric: { op, column: metric.name }, groupBy: { column: c.name } });
       const top = res.rows[0];
       if (!top) continue;
-      out.push({
-        kind: 'leader',
-        title: `${top.label} leads ${c.name}`,
-        detail: `${formatNumber(top.value, metric, true)} of ${metric.name} (${pct(top.value, res.total)} of the total) across ${res.rows.length} ${c.name.toLowerCase()} groups.`,
-        question: `${metric.name} by ${c.name}`,
-      });
+      out.push(op === 'avg'
+        ? {
+            kind: 'leader',
+            title: `${top.label} has the highest average ${metric.name}`,
+            detail: `${formatNumber(top.value, metric)} on average, against ${formatNumber(metric.mean || 0, metric)} overall, across ${res.rows.length} ${c.name.toLowerCase()} groups.`,
+            question: `average ${metric.name} by ${c.name}`,
+          }
+        : {
+            kind: 'leader',
+            title: `${top.label} leads ${c.name}`,
+            detail: `${formatNumber(top.value, metric, true)} of ${metric.name} (${pct(top.value, res.total)} of the total) across ${res.rows.length} ${c.name.toLowerCase()} groups.`,
+            question: `${metric.name} by ${c.name}`,
+          });
     }
   }
 
   if (metric && dateCol) {
-    const res = runQuery(ds, { metric: { op: 'sum', column: metric.name }, groupBy: { column: dateCol.name, bucket: 'month' } });
+    const res = runQuery(ds, { metric: { op, column: metric.name }, groupBy: { column: dateCol.name, bucket: 'month' } });
     if (res.rows.length >= 3) {
       const last = res.rows[res.rows.length - 1];
       const prev = res.rows[res.rows.length - 2];
@@ -52,8 +68,8 @@ export function generateInsights(ds: Dataset): Insight[] {
       out.push({
         kind: 'trend',
         title: `${metric.name} ${last.value >= first.value ? 'grew' : 'fell'} ${change(first.value, last.value)} from ${first.label} to ${last.label}`,
-        detail: `Last month vs the one before: ${change(prev.value, last.value)}. Best month: ${best.label} (${formatNumber(best.value, metric, true)}).`,
-        question: `${metric.name} trend by month`,
+        detail: `Last month vs the one before: ${change(prev.value, last.value)}. ${op === 'avg' ? 'Highest' : 'Best'} month: ${best.label} (${formatNumber(best.value, metric, true)}).`,
+        question: `${op === 'avg' ? 'average ' : ''}${metric.name} trend by month`,
       });
     }
   }
