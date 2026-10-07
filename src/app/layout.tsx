@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
-import { Instrument_Sans } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
-import { Toaster } from '@/components/ui/sonner';
 
-const instrumentSans = Instrument_Sans({ variable: '--font-instrument-sans', subsets: ['latin'] });
+const geist = Geist({ variable: '--font-geist', subsets: ['latin'] });
+const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
-const title = 'InsightDesk · Ask your business data anything';
-const description = 'Upload a CSV and ask questions in plain English. Get instant answers, charts and automatic insights. Your data stays in your browser.';
+const title = 'InsightDesk · Answers from your spreadsheets';
+const description = 'Drop in a CSV and ask questions in plain English. Charts, automatic insights and a shareable dashboard, computed in your browser.';
 
 export const metadata: Metadata = {
   title,
@@ -17,10 +18,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${instrumentSans.variable} font-sans antialiased`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+      <body className="font-sans">
         {children}
-        <Toaster richColors position="bottom-right" />
+        <Toaster position="bottom-center" toastOptions={{ style: { background: '#09090b', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13 } }} />
       </body>
     </html>
   );
