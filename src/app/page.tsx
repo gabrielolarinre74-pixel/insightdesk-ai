@@ -45,6 +45,7 @@ export default function Home() {
   const suggestions = useMemo(() => (dataset ? suggestQuestions(dataset) : []), [dataset]);
   const overview = useMemo(() => (dataset ? buildOverview(dataset) : null), [dataset]);
 
+  useEffect(() => { if (tab !== "ask") window.scrollTo({ top: 0 }); }, [tab]);
   useEffect(() => { if (tab === "ask") endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [answers.length, tab]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
