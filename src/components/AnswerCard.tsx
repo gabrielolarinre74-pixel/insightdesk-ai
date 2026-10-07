@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, Copy, Pin, PinOff, Table2, Wand2, Sparkles } from "lucide-react";
+import { BarChart3, Check, Copy, Cpu, Pin, Sparkles, Table2 } from "lucide-react";
 import { toast } from "sonner";
 import { ChartView } from "@/components/ChartView";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatNumber, pct } from "@/lib/data/format";
 import { boldSegments, cn } from "@/lib/utils";
 import type { Dataset, QueryResult } from "@/lib/data/types";
@@ -26,70 +25,83 @@ export function AnswerCard({ answer, dataset, pinned, onPin, compact }: { answer
   const metricCol = dataset.columns.find((c) => c.name === res?.plan.metric.column);
   const fmt = (n: number) => formatNumber(n, res?.plan.metric.op === "count" || res?.plan.metric.op === "distinct" ? undefined : metricCol);
   const additive = res && (res.plan.metric.op === "sum" || res.plan.metric.op === "count");
+  const showShare = additive && res.rows.length > 1;
 
   const copyCsv = () => {
     if (!res) return;
     const csv = [`"${res.groupLabel ?? "Label"}","${res.metricLabel}"`, ...res.rows.map((r) => `"${r.label.replace(/"/g, '""')}",${r.value}`)].join("\n");
-    navigator.clipboard.writeText(csv).then(() => toast.success("Result copied as CSV"));
+    navigator.clipboard.writeText(csv).then(() => toast.success("Copied as CSV"));
   };
 
-  return (
-    <article className={cn("rounded-2xl border border-slate-200 bg-white shadow-sm", compact ? "p-4" : "p-5")}>
-      {!compact && (
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <h3 className="font-semibold text-slate-900">{title}</h3>
-          <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", answer.engine === "ai" ? "bg-violet-50 text-violet-700" : "bg-emerald-50 text-emerald-700")}>
-            {answer.engine === "ai" ? <><Sparkles className="mr-1 inline size-3" />AI plan</> : <><Wand2 className="mr-1 inline size-3" />Demo engine</>}
-          </span>
-        </div>
-      )}
-      {compact && <h3 className="mb-2 text-sm font-semibold text-slate-900">{title}</h3>}
-      <p className={cn("leading-relaxed", answer.error ? "text-rose-600" : "text-slate-700", compact && "text-sm")}>
-        {boldSegments(answer.text).map((s, i) => (s.bold ? <strong key={i} className="font-semibold text-slate-900">{s.text}</strong> : <span key={i}>{s.text}</span>))}
+  const body = (
+    <>
+      <p className={cn("leading-relaxed", answer.error ? "text-red-600" : "text-ink-700", compact ? "text-[13px]" : "text-[15px]")}>
+        {boldSegments(answer.text).map((s, i) => (s.bold ? <strong key={i} className="font-semibold text-ink-950">{s.text}</strong> : <span key={i}>{s.text}</span>))}
       </p>
-      {answer.understanding && !compact && <p className="mt-1 text-xs text-slate-400">Interpreted as: {answer.understanding}</p>}
       {res && res.rows.length > 0 && (
         <div className="mt-4">
           {view === "chart" && res.chart !== "table" ? (
-            <ChartView result={res} metricCol={metricCol} height={compact ? 200 : 280} />
+            <ChartView result={res} metricCol={metricCol} height={compact ? 210 : 280} />
           ) : (
-            <div className="max-h-72 overflow-auto rounded-xl border border-slate-100">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{res.groupLabel ?? "Result"}</TableHead>
-                    <TableHead className="text-right">{res.metricLabel}</TableHead>
-                    {additive && res.rows.length > 1 && <TableHead className="text-right">Share</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <div className="max-h-72 overflow-auto rounded-xl ring-1 ring-ink-100">
+              <table className="w-full text-[13px]">
+                <thead className="sticky top-0 bg-ink-50 text-left text-[11px] uppercase tracking-wider text-ink-500">
+                  <tr>
+                    <th className="px-3.5 py-2 font-medium">{res.groupLabel ?? "Result"}</th>
+                    <th className="px-3.5 py-2 text-right font-medium">{res.metricLabel}</th>
+                    {showShare && <th className="w-40 px-3.5 py-2 text-right font-medium">Share</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-100">
                   {res.rows.map((r) => (
-                    <TableRow key={r.label}>
-                      <TableCell>{r.label}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(r.value)}</TableCell>
-                      {additive && res.rows.length > 1 && <TableCell className="text-right tabular-nums text-slate-500">{pct(r.value, res.total)}</TableCell>}
-                    </TableRow>
+                    <tr key={r.label} className="hover:bg-ink-50/60">
+                      <td className="px-3.5 py-2">{r.label}</td>
+                      <td className="px-3.5 py-2 text-right font-mono tabular-nums">{fmt(r.value)}</td>
+                      {showShare && (
+                        <td className="px-3.5 py-2">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-ink-100"><span className="block h-full rounded-full bg-brand-500" style={{ width: `${res.total ? (r.value / res.total) * 100 : 0}%` }} /></span>
+                            <span className="w-10 text-right font-mono text-xs tabular-nums text-ink-500">{pct(r.value, res.total)}</span>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
           )}
-          <div className="no-print mt-3 flex flex-wrap items-center gap-1.5">
-            {res.chart !== "number" && res.chart !== "table" && (
-              <div className="inline-flex rounded-lg bg-slate-100 p-0.5">
-                <button className={cn("flex items-center gap-1 rounded-md px-2 py-1 text-xs", view === "chart" && "bg-white shadow-sm")} onClick={() => setView("chart")}><BarChart3 className="size-3.5" />Chart</button>
-                <button className={cn("flex items-center gap-1 rounded-md px-2 py-1 text-xs", view === "table" && "bg-white shadow-sm")} onClick={() => setView("table")}><Table2 className="size-3.5" />Table</button>
-              </div>
-            )}
-            <button className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100" onClick={copyCsv}><Copy className="size-3.5" />Copy CSV</button>
-            {onPin && (
-              <button className={cn("flex items-center gap-1 rounded-lg px-2 py-1 text-xs hover:bg-slate-100", pinned ? "text-emerald-700" : "text-slate-500")} onClick={onPin}>
-                {pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}{pinned ? "Unpin" : "Pin to dashboard"}
-              </button>
-            )}
-            <span className="ml-auto text-[11px] text-slate-400">{res.matched.toLocaleString()} rows matched</span>
-          </div>
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <article className={cn("panel animate-rise", compact ? "p-4" : "p-5")}>
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <h3 className={cn("font-semibold tracking-tight", compact ? "text-sm" : "text-[15px]")}>{title}</h3>
+        <div className="no-print flex shrink-0 items-center gap-1">
+          {res && res.chart !== "number" && res.chart !== "table" && (
+            <div className="mr-1 inline-flex rounded-lg bg-ink-100 p-0.5">
+              <button className={cn("grid size-7 place-items-center rounded-md text-ink-500", view === "chart" && "bg-white text-ink-950 shadow-card")} onClick={() => setView("chart")} aria-label="Chart view"><BarChart3 className="size-3.5" /></button>
+              <button className={cn("grid size-7 place-items-center rounded-md text-ink-500", view === "table" && "bg-white text-ink-950 shadow-card")} onClick={() => setView("table")} aria-label="Table view"><Table2 className="size-3.5" /></button>
+            </div>
+          )}
+          {res && <button className="grid size-8 place-items-center rounded-lg text-ink-500 hover:bg-ink-100 hover:text-ink-950" onClick={copyCsv} aria-label="Copy as CSV" title="Copy as CSV"><Copy className="size-3.5" /></button>}
+          {onPin && (
+            <button className={cn("flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition", pinned ? "bg-brand-50 text-brand-700" : "text-ink-600 hover:bg-ink-100")} onClick={onPin}>
+              {pinned ? <Check className="size-3.5" /> : <Pin className="size-3.5" />}{pinned ? "Pinned" : "Pin"}
+            </button>
+          )}
+        </div>
+      </header>
+      {body}
+      {!compact && (res || answer.understanding) && (
+        <footer className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-ink-100 pt-3 text-[11.5px] text-ink-500">
+          <span className="inline-flex items-center gap-1 font-medium text-ink-700">{answer.engine === "ai" ? <Sparkles className="size-3 text-brand-600" /> : <Cpu className="size-3 text-brand-600" />}{answer.engine === "ai" ? "AI plan" : "Built-in parser"}</span>
+          {answer.understanding && <span className="font-mono">{answer.understanding}</span>}
+          {res && <span className="ml-auto font-mono tabular-nums">{res.matched.toLocaleString()} rows</span>}
+        </footer>
       )}
     </article>
   );
