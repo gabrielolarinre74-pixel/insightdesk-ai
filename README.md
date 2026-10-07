@@ -1,94 +1,87 @@
 <div align="center">
 
-<img src="public/logo.svg" width="72" alt="InsightDesk logo" />
+<img src="public/logo.svg" width="60" alt="" />
 
 # InsightDesk
 
-**Chat with your business data. Upload a CSV, ask questions in plain English and get instant answers, charts, automatic insights and a dashboard you can share.**
+### Your spreadsheet already knows the answer. Just ask it.
 
-**Runs entirely in your browser** · built-in demo mode with sample datasets, no account and no API key · [Run it locally](#run-it-locally)
+Drop in a CSV from your store, CRM, ad account or help desk. InsightDesk profiles every column, shows what changed, answers plain-English questions with charts and lets you pin the good ones to a one-page dashboard. All of it runs in your browser.
 
-![Automatic insights](docs/screenshots/insights.png)
+![Overview](docs/screenshots/overview.png)
 
 </div>
 
-## The problem it solves
+---
 
-Most small businesses already have the data they need: exports from their shop, CRM, invoicing tool or ad account. What they don't have is an analyst. Answering "which service brings in the most money?" or "are sales actually growing?" means pivot tables, formulas and time nobody has.
+## Why
 
-InsightDesk turns that CSV into answers:
-
-- Drop in a file and it **profiles every column** and surfaces the headline numbers, top performers, growth trend, unusual values and data-quality gaps on its own.
-- Ask questions the way you'd ask a colleague: *"top 5 services by revenue"*, *"monthly revenue trend"*, *"how many orders over 5000"*, *"average revenue in Europe"*.
-- Pin the answers that matter to a **dashboard**, then print it to PDF or download a Markdown report for your team or client.
+Most business questions are a pivot table away, but building one takes time and a bit of spreadsheet skill. InsightDesk skips that step: open the file, read the headline numbers, then ask “top 5 products by revenue in Europe” and get a chart and a sentence back.
 
 ## Features
 
-**Automatic insights**
-- Column profiling with type detection (number, currency, percentage, date, category, text)
-- Insight cards for the key metric, leading segments, period-over-period trend, statistical outliers and missing values
-- Starter questions generated from your own columns. Click any insight to drill into it.
+**Overview, the moment a file opens**
+- KPI cards for the main numeric columns with a monthly sparkline and the change versus the previous month.
+- Monthly trend of the main metric and a breakdown by the most useful category.
+- “What stands out”: leaders, growth, unusual values (more than 3 standard deviations out) and missing data, each with an **Explore** button that turns it into a question.
+- Sensible maths: money and counts are summed, while durations, scores, ratings and percentages are averaged.
 
 **Ask in plain English**
-- Built-in language engine that works offline: totals, averages, counts, min/max, unique counts, top/bottom N, grouping, filters (`in Europe`, `over 5000`, `in March`, `returning customers`) and day/week/month/quarter/year trends
-- Understands synonyms and plurals (*services → Product*, *sales → Revenue*, *clients → Customer*)
-- Every answer shows a one-line summary, an "Interpreted as" line so you can check what was calculated, and how many rows matched
-- Optional **AI mode** for open-ended questions with any OpenAI-compatible API (OpenAI, Groq, OpenRouter, Together, local models…)
+- Totals, averages, counts, unique counts, min and max; breakdowns by any column; time buckets (day, week, month, quarter, year); top/bottom N; filters such as “in Europe”, “not Email”, “over 1000” or “in March”.
+- Every answer comes with a one-line summary, a chart (bar, line, donut or big number) and a table view with share bars.
+- Optional **AI mode** with any OpenAI-compatible API for open-ended phrasing. The model only sees column names, types and three sample rows, and returns a JSON query plan that is validated with Zod and checked against your real columns. No generated code is executed.
 
-**Charts and dashboard**
-- Picks the right visual automatically: KPI number, trend line, donut for shares, bar chart for rankings
-- Switch between chart and table, copy any result as CSV
-- Pin answers to a dashboard, print it, or export a Markdown report with the insights and result tables
+**Dashboard and exports**
+- Pin answers to a two-column dashboard, print it, or export a Markdown report with the highlights and tables.
+- Copy any result as CSV.
 
-**Private and safe by design**
-- Files are parsed and queried **entirely in the browser**. Nothing is uploaded.
-- In AI mode the model only receives the column names, types and 3 sample rows. It returns a small JSON query plan, which is validated with Zod and checked against your real columns before running locally on the full dataset. No generated code is ever executed.
-- The API key is stored only in your browser's localStorage, and non-HTTPS endpoints are rejected (except localhost)
-- File limits (30 MB / 200,000 rows), question length limits and friendly errors for malformed CSVs
+**Data view**
+- Every row in a paged table: click a header to sort by type (numbers numerically, dates chronologically, blanks last).
+- Multi-word search across all cells (“europe returning”) and **Export view** to CSV.
+- Empty cells are flagged so data gaps are obvious.
+
+**Column profiles**
+- Expand any column in the sidebar to see how full it is, a histogram with min/avg/max for numbers, top values for categories or the date range.
+
+**Comfort**
+- Keyboard shortcuts: `1`–`4` switch sections, `/` jumps to the question box.
+- Three synthetic sample datasets (agency sales, marketing leads, help-desk tickets) so it can be tried without a file.
 
 ## Screenshots
 
-| Upload | Ask a question |
+| Landing | Ask |
 |---|---|
-| ![Landing](docs/screenshots/landing.png) | ![Answers](docs/screenshots/ask.png) |
+| ![Landing](docs/screenshots/landing.png) | ![Ask](docs/screenshots/ask.png) |
 
-| Dashboard | Data preview |
+| Dashboard | Data |
 |---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Preview](docs/screenshots/preview.png) |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Data](docs/screenshots/data.png) |
 
-> The two sample datasets (`agency-sales-2025.csv`, `marketing-leads-2025.csv`) are synthetic and generated in code. They are not real business data.
+| Help-desk sample overview | Settings |
+|---|---|
+| ![Support overview](docs/screenshots/overview-support.png) | ![Settings](docs/screenshots/settings.png) |
 
-## How it works
+## How a question is answered
 
 ```
-CSV ─▶ parse (PapaParse) ─▶ profile columns ─▶ automatic insights
-                                   │
-question ─▶ demo engine (offline parser) ─┐
-        └─▶ AI engine (schema + 3 rows) ──┴▶ QueryPlan (validated) ─▶ run locally ─▶ answer + chart
+question ──▶ built-in parser ─┐
+                               ├─▶ QueryPlan (validated) ─▶ run on every row in the browser ─▶ summary + chart
+question ──▶ AI model (schema) ┘
 ```
 
-A `QueryPlan` is a small, declarative description of the calculation:
-
-```json
-{ "metric": { "op": "sum", "column": "Revenue" },
-  "groupBy": { "column": "Product" },
-  "filters": [{ "column": "Region", "op": "=", "value": "Europe" }],
-  "sort": "desc", "limit": 5 }
-```
-
-Because the plan is data rather than code, it can be validated, explained back to the user and executed safely.
+A `QueryPlan` is a small declarative object (metric, group-by, filters, sort, limit, chart). It is never evaluated as code.
 
 ## Tech stack
 
-- **Next.js 16** (static export) · **React 19** · **TypeScript**
-- **Tailwind CSS 4** · Radix UI primitives · lucide icons · Sonner toasts
-- **Recharts** for charts · **PapaParse** for CSV parsing · **Zod** for validating AI output
-- **Vitest** for the engine test suite
-- GitHub Actions CI: tests, type-check and a production build on every push and pull request
+- Next.js 16 (App Router, static export), React 19, TypeScript
+- Tailwind CSS 4 with a custom green/black design system, Geist and Geist Mono
+- Recharts, PapaParse, Zod, Radix Dialog, react-dropzone, sonner, lucide-react
+- Vitest for parsing, profiling, the language engine, queries, overview maths, table sorting/search and AI plan validation
+- GitHub Actions: type-check, tests and build on every push
 
-## Run it locally
+## Run locally
 
-You need **Node.js 20.9+** and npm.
+Requires Node.js 20.9 or newer.
 
 ```bash
 git clone https://github.com/gabrielolarinre74-pixel/insightdesk-ai.git
@@ -97,38 +90,25 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-Then open http://localhost:3000 in your browser.
+Pick a sample dataset or drop in your own CSV. No key is needed: the built-in parser handles the questions above offline. For AI mode, open **Settings**, choose **AI model** and add your own key, base URL and model. The key stays in your browser.
 
 ```bash
-npm test           # engine tests (parsing, profiling, language engine, queries, AI plan validation)
-npm run lint       # type-check
-npm run build      # static site in ./out
-npx serve out      # optional: serve the production build locally
+npm run lint       # TypeScript
+npm test           # Vitest
+npm run build      # static site in out/
+npx serve out      # preview the production build
 ```
 
-No environment variables are required. See [.env.example](.env.example). To use AI mode, open **Settings** in the app and add your own API key, base URL and model.
-
-### Demo mode (no API key)
-
-The app opens in **demo mode** by default. Click one of the two synthetic sample datasets (agency sales or marketing leads), or drop in your own CSV, and questions are answered by the built-in offline language engine. Your file is parsed and queried in the browser. Nothing is sent anywhere, so you can try every feature straight away. Switch to a real model at any time in **Settings**.
+`.env.example` documents the only build option (`BASE_PATH`). No secrets are required.
 
 ## Project structure
 
 ```
-src/
-  app/                 page + layout
-  components/          upload area, answer card, charts, settings, preview
-  lib/data/
-    parse.ts           number / currency / percent / date parsing
-    profile.ts         column type detection and statistics
-    nl.ts              offline question → QueryPlan parser
-    query.ts           plan validation and execution
-    answer.ts          plain-English narration of results
-    insights.ts        automatic insights and suggested questions
-    load.ts            CSV loading with size and row limits
-    samples.ts         synthetic demo datasets
-  lib/ai.ts            OpenAI-compatible planner with Zod validation
-tests/                 Vitest suite
+src/app/page.tsx            app shell: landing, sidebar, sections
+src/components/             Overview, AnswerCard, ChartView, DataTable, ColumnList, Landing, SettingsDialog
+src/lib/data/               CSV loading, profiling, language parser, query engine, insights, overview, table helpers
+src/lib/ai.ts               OpenAI-compatible planner with Zod validation
+tests/                      Vitest suites
 ```
 
 ## License
@@ -137,4 +117,4 @@ MIT. See [LICENSE](LICENSE).
 
 ---
 
-Built by **Gabriel Zion · Gabriel.ATH**. I build websites, apps and AI automation that help businesses grow. [Portfolio](https://gabrielzion-portfolio.vercel.app)
+Designed and built by **Gabriel Zion · Gabriel.ATH**. I build websites, apps and AI automation that help businesses grow. [Portfolio](https://gabrielzion-portfolio.vercel.app)
