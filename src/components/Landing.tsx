@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Sparkline } from "@/components/ChartView";
 import { buildDataset } from "@/lib/data/profile";
 import { buildOverview } from "@/lib/data/overview";
+import { runQuery } from "@/lib/data/query";
 import { formatNumber } from "@/lib/data/format";
 import { MAX_FILE_BYTES } from "@/lib/data/load";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,9 @@ export function Landing({ samples, onFile, onSample, busy }: { samples: SampleDa
   const preview = useMemo(() => {
     const s = samples[0];
     const ds = buildDataset(s.name, s.headers, s.rows);
-    return { ds, ov: buildOverview(ds, 2) };
+    const metric = ds.columns.find((c) => c.name === "Revenue");
+    const byRegion = metric ? runQuery(ds, { metric: { op: "sum", column: metric.name }, groupBy: { column: "Region" }, sort: "desc" }).rows : [];
+    return { ds, ov: buildOverview(ds, 2), byRegion, metric };
   }, [samples]);
   const k = preview.ov.kpis[0];
 
@@ -83,16 +86,13 @@ export function Landing({ samples, onFile, onSample, busy }: { samples: SampleDa
             <div className="rounded-xl bg-ink-950 p-3.5 text-white">
               <div className="flex items-center gap-2 text-[13px]"><MessageSquareText className="size-4 text-brand-400" />Which region brings in the most revenue?</div>
               <div className="mt-3 space-y-1.5">
-                {(() => {
-                  const regions = preview.ds.columns.find((c) => c.name === "Region")?.top ?? [];
-                  const max = regions[0]?.count || 1;
-                  return regions.slice(0, 4).map((r, i) => (
-                    <div key={r.value} className="flex items-center gap-2 text-[11.5px]">
-                      <span className="w-24 truncate text-white/70">{r.value}</span>
-                      <span className="h-2 flex-1 rounded-full bg-white/10"><span className={cn("block h-full rounded-full", i === 0 ? "bg-brand-400" : "bg-white/40")} style={{ width: `${(r.count / max) * 100}%` }} /></span>
-                    </div>
-                  ));
-                })()}
+                {preview.byRegion.slice(0, 4).map((r, i) => (
+                  <div key={r.label} className="flex items-center gap-2 text-[11.5px]">
+                    <span className="w-24 truncate text-white/70">{r.label}</span>
+                    <span className="h-2 flex-1 rounded-full bg-white/10"><span className={cn("block h-full rounded-full", i === 0 ? "bg-brand-400" : "bg-white/40")} style={{ width: `${(r.value / (preview.byRegion[0]?.value || 1)) * 100}%` }} /></span>
+                    <span className="w-12 text-right font-mono text-white/60">{formatNumber(r.value, preview.metric, true)}</span>
+                  </div>
+                ))}
               </div>
             </div>
             {k?.delta && <div className="flex items-center gap-1.5 px-1 text-[12px] text-ink-500"><Sparkles className="size-3.5 text-brand-600" />{k.column.name} {k.up ? "up" : "down"} <b className={cn("font-semibold", k.up ? "text-brand-700" : "text-ink-950")}>{k.delta}</b> last month</div>}
