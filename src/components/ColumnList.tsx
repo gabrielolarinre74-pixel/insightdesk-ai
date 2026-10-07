@@ -63,7 +63,7 @@ export function ColumnList({ dataset }: { dataset: Dataset }) {
               <Icon className="size-3.5 shrink-0 text-ink-400" />
               <span className="min-w-0 flex-1 truncate text-ink-800">{c.name}</span>
               {c.missing > 0 && <span className="size-1.5 rounded-full bg-amber-500" title={`${c.missing} empty`} />}
-              <span className="font-mono text-[10.5px] text-ink-400">{c.type === "category" ? c.distinct : c.type.slice(0, 3)}</span>
+              <span className="font-mono text-[10.5px] text-ink-400">{c.type === "category" ? `${c.distinct} vals` : c.type === "number" ? "123" : c.type}</span>
               <ChevronDown className={cn("size-3.5 text-ink-400 transition", isOpen && "rotate-180")} />
             </button>
             {isOpen && <Profile c={c} ds={dataset} />}

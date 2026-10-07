@@ -62,6 +62,7 @@ export default function Home() {
     setAnswers([]);
     setPinned([]);
     setTab("overview");
+    window.scrollTo({ top: 0 });
   };
   const onFile = async (file: File) => {
     setLoadingFile(true);
