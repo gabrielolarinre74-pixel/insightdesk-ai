@@ -6,7 +6,7 @@
 
 **Chat with your business data. Upload a CSV, ask questions in plain English and get instant answers, charts, automatic insights and a dashboard you can share.**
 
-[**Live demo**](https://gabrielolarinre74-pixel.github.io/insightdesk-ai/) · runs in the browser with sample datasets, no account and no API key
+**Runs entirely in your browser** · built-in demo mode with sample datasets, no account and no API key · [Run it locally](#run-it-locally)
 
 ![Automatic insights](docs/screenshots/insights.png)
 
@@ -84,9 +84,11 @@ Because the plan is data rather than code, it can be validated, explained back t
 - **Tailwind CSS 4** · Radix UI primitives · lucide icons · Sonner toasts
 - **Recharts** for charts · **PapaParse** for CSV parsing · **Zod** for validating AI output
 - **Vitest** for the engine test suite
-- GitHub Actions → GitHub Pages
+- GitHub Actions CI: tests, type-check and a production build on every push and pull request
 
-## Getting started
+## Run it locally
+
+You need **Node.js 20.9+** and npm.
 
 ```bash
 git clone https://github.com/gabrielolarinre74-pixel/insightdesk-ai.git
@@ -95,17 +97,20 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
+Then open http://localhost:3000 in your browser.
+
 ```bash
 npm test           # engine tests (parsing, profiling, language engine, queries, AI plan validation)
 npm run lint       # type-check
 npm run build      # static site in ./out
+npx serve out      # optional: serve the production build locally
 ```
 
 No environment variables are required. See [.env.example](.env.example). To use AI mode, open **Settings** in the app and add your own API key, base URL and model.
 
-### Deploying
+### Demo mode (no API key)
 
-The included workflow (`.github/workflows/deploy.yml`) runs the tests, builds with the right base path and publishes to GitHub Pages on every push to `main`. Enable **Settings → Pages → Source: GitHub Actions** on your repository.
+The app opens in **demo mode** by default. Click one of the two synthetic sample datasets (agency sales or marketing leads), or drop in your own CSV, and questions are answered by the built-in offline language engine. Your file is parsed and queried in the browser. Nothing is sent anywhere, so you can try every feature straight away. Switch to a real model at any time in **Settings**.
 
 ## Project structure
 

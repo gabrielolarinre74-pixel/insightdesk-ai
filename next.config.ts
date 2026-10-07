@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 // Static export: parsing, querying and charting all happen in the browser,
-// so InsightDesk can be hosted on GitHub Pages. BASE_PATH is set by CI.
+// so ./out can be served by any static host. Set BASE_PATH only for sub-path hosting.
 const basePath = process.env.BASE_PATH || '';
 
 const nextConfig: NextConfig = {
