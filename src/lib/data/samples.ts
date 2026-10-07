@@ -91,4 +91,42 @@ export function marketingSample(): SampleDataset {
   };
 }
 
-export const SAMPLES = [salesSample, marketingSample];
+export function supportSample(): SampleDataset {
+  const r = rng(19);
+  const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
+  const categories = ['Billing', 'Login', 'Bug report', 'Feature request', 'Shipping', 'Refund'];
+  const channels = ['Email', 'Chat', 'Phone', 'Web form'];
+  const agents = ['Ava', 'Noah', 'Mia', 'Leo', 'Zoe'];
+  const rows: Row[] = [];
+  for (let i = 0; i < 360; i++) {
+    const month = Math.floor((i / 360) * 9);
+    const day = 1 + Math.floor(r() * 27);
+    const category = pick(categories);
+    const priority = r() < 0.15 ? 'Urgent' : r() < 0.5 ? 'High' : 'Normal';
+    const channel = pick(channels);
+    // chat is answered faster; urgent tickets are resolved faster but feel worse
+    const firstResponse = Math.round((channel === 'Chat' ? 4 : channel === 'Phone' ? 2 : 45) * (0.5 + r()) * (1 - month * 0.04));
+    const resolution = Math.round((category === 'Bug report' ? 30 : 8) * (0.4 + r() * 1.2) * (priority === 'Urgent' ? 0.5 : 1) * 10) / 10;
+    const csat = Math.max(1, Math.min(5, Math.round(4.6 - resolution / 25 - (priority === 'Urgent' ? 0.6 : 0) + (r() - 0.5) * 1.6)));
+    rows.push({
+      'Ticket ID': `T-${5000 + i}`,
+      Opened: `2025-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      Channel: channel,
+      Category: category,
+      Priority: priority,
+      Agent: pick(agents),
+      'First Response (min)': String(firstResponse),
+      'Resolution (hrs)': String(resolution),
+      CSAT: r() < 0.08 ? '' : String(csat),
+    });
+  }
+  return {
+    id: 'support',
+    name: 'support-tickets-2025.csv',
+    description: 'Help-desk tickets with response times, resolution hours and satisfaction scores (synthetic).',
+    headers: Object.keys(rows[0]),
+    rows,
+  };
+}
+
+export const SAMPLES = [salesSample, marketingSample, supportSample];

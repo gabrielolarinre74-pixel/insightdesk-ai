@@ -69,3 +69,16 @@ describe('overview', () => {
     expect(h.reduce((n, b) => n + b.count, 0)).toBe(ds.rows.length);
   });
 });
+
+describe('support sample', () => {
+  it('profiles response times as numbers and the open date as a date', async () => {
+    const { supportSample } = await import('@/lib/data/samples');
+    const s = supportSample();
+    const ds = buildDataset(s.name, s.headers, s.rows);
+    const t = (n: string) => ds.columns.find((c) => c.name === n)?.type;
+    expect(t('Opened')).toBe('date');
+    expect(t('Resolution (hrs)')).toBe('number');
+    expect(t('Priority')).toBe('category');
+    expect(ds.columns.find((c) => c.name === 'CSAT')!.missing).toBeGreaterThan(0);
+  });
+});
